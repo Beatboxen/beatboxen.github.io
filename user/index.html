@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Beatboxen - Profil</title>
+</head>
+
+<body>
+    <div class="buttons">
+        <button style="margin: 16px 12px;" id="back-btn"><i class="fas fa-arrow-left"></i></button>
+        <button style="margin: 16px 0;" id="share-btn"><i class="fa-solid fa-share-from-square"></i></button>
+    </div>
+    <div class="container">
+        <img src="#" class="profile-picture">
+        <p class="username"></p>
+        <p class="bio"></p>
+        <div class="roles">
+            <p class="role"></p>
+            <p class="pro">PRO</p>
+        </div>
+    </div>
+    <div class="clipboard-notification" id="clipboardNotification">
+        <i class="fa-regular fa-clipboard"></i>
+        <p>Kopieret profil link til udklipsholder</p>
+    </div>
+</body>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyC4iaUZNuXO9Jml9LjqAYiuMZ6NZmHP_3g",
+        authDomain: "beatboxenmusik.firebaseapp.com",
+        projectId: "beatboxenmusik",
+        storageBucket: "beatboxenmusik.appspot.com",
+        messagingSenderId: "133861428374",
+        appId: "1:133861428374:web:b2c49ebcd87c719f9a46b7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    $("#back-btn").on("click", function () {
+        window.location.href = '../index.html';
+    });
+
+    var isProcessing = false;
+
+    $("#share-btn").on("click", function () {
+        if (isProcessing) {
+            return;
+        }
+
+        isProcessing = true;
+
+        var currentURL = window.location.href;
+        var notification = $("#clipboardNotification");
+
+        navigator.clipboard.writeText(currentURL)
+            .then(function () {
+                notification.addClass("fadeIn").css("opacity", 1);
+
+                setTimeout(function () {
+                    notification.removeClass("fadeIn").addClass("fadeOut");
+
+                    setTimeout(function () {
+                        notification.css({
+                            "opacity": 0
+                        }).removeClass("fadeOut");
+
+                        setTimeout(function () {
+                            isProcessing = false;
+                        }, 1000);
+
+                    }, 400);
+
+                }, 2000);
+
+                console.log('URL copied to clipboard!');
+            })
+            .catch(function (err) {
+                console.error('Unable to copy URL to clipboard', err);
+                isProcessing = false;
+            });
+    });
+
+    $("#clipboardNotification").on("animationend", function () {
+        $(this).removeClass("fadeIn");
+    });
+
+    function fetchUserProfile(uid) {
+        const userDocRef = db.collection('users').doc(uid);
+
+        userDocRef.get()
+            .then((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    $(".profile-picture").attr("src", userData.profilePicture);
+                    $(".username").text(userData.username);
+                    $(".bio").text(userData.bio);
+                    $(".role").text(userData.role);
+
+                    if (userData.role) {
+                        const roleElement = $(".role");
+                        if (userData.role === "admin") {
+                            roleElement.css("background-color", "#D80000");
+                        } else if (userData.role === "team") {
+                            roleElement.css("background-color", "#00BD68");
+                        } else if (userData.role === "max") {
+                            roleElement.css("background-color", "#1D9DC3");
+                        }
+                    } else {
+                        $(".role").css("display", "none");
+                    }
+
+                    if (userData.pro === 1) {
+                        $(".pro").css("display", "flex");
+                    }
+
+                    document.title = `Beatboxen - ${userData.username}'s profil`;
+                } else {
+                    console.log("No such document!");
+                    $(".container").css("display", "none");
+                    isProcessing = true;
+                }
+            })
+            .catch((error) => {
+                console.error("Error getting document:", error);
+                $(".container").css("display", "none");
+                isProcessing = true;
+            });
+    }
+
+    const queryString = window.location.search;
+    const uidIndex = queryString.indexOf('?') + 1;
+    const userUID = uidIndex > 0 ? queryString.slice(uidIndex) : null;
+
+    if (userUID) {
+        fetchUserProfile(userUID);
+    } else {
+        console.log("No user UID found in the URL.");
+        $(".container").css("display", "none");
+        isProcessing = true;
+    }
+
+    $(".pro").on("click", function () {
+        window.location.href = '/pro/';
+    });
+</script>
+
+</html>
